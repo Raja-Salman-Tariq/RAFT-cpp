@@ -8,8 +8,6 @@
 using namespace std;
 
 
-struct Messenger {};
-
 struct Scheduler {};
 
 

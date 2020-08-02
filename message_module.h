@@ -40,6 +40,8 @@ public:
 	Message(std::string _type, us_int _src, us_int _dst, std::map<std::string, std::string> _args):
 					type(_type), src(_src), dst(_dst), args(_args){}
 
+	Message(const Message & m):type(m.type), src(m.src), dst(m.dst), args(m.args){} // was not mandatory
+
 	bool has_type(std::string _type){return !type.compare(_type); }
 	bool has_args(std::list<std::string> _args){
 		if (_args.size()!=args.size())
@@ -55,11 +57,25 @@ public:
 		return 1;
 	}
 
+	const std::string& getType() {return type;}
+	const us_int& getSrc() {return src;}
+	const us_int& getDst() {return dst;}
+	const std::map<std::string, std::string>& getArgs(){return args;}
+
+	void showArgs(){
+		auto i=args.cbegin(), end=args.cend();
+
+		for(; i!=end; i++)
+			printf("Key: %s, Val: %s\n", i->key, i->val);
+	}
+
 private:
 	std::string type;
 	us_int src;
 	us_int dst;
 	std::map<std::string, std::string> args;
+
+};
 
 /*
 """
