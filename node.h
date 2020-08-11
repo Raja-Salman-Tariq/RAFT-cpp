@@ -1,15 +1,15 @@
 #ifndef node_present
 #define node_present
 
-#include <iostream>
+#include <iostream>	
 #include <string>
+#include <unistd.h>
+#include <functional>
+#include "message_module.h"
 #include "routing_module.h"
 #include "key_value_module.h"
 #include "log_module.h"
 #include "async_module.h"
-#include <unistd.h>
-#include <functional>
-#include "message_module.h"
 
 
 
@@ -18,8 +18,6 @@
 using namespace std;
 
 
-//struct Scheduler {};
-
 struct transactions {};
 
 
@@ -27,10 +25,11 @@ class RaftNode {
 public:
 	/*		the variables begining with an underscore '_' are
 			object initialization paremeters. They get copied
-			into the class data members (not begin
+			into the class data members (not begining
 			with an underscore).
 
-			The RaftNode function below initializes the class
+			The RaftNode "function" below initializes the class
+			It is the constructor.
 
 			Particularly, a member initialization list has
 			been used, where to copy parameters (P) into data
@@ -38,6 +37,8 @@ public:
 
 			: DM1(P1), DM2(P2), ... , DMn(Pn)
 	*/
+
+	// constructor
 	RaftNode(	us_int _addr,
 	            PersistantKeyValueStore _persistent_storage,
 	            Scheduler _scheduler,
@@ -55,38 +56,9 @@ public:
 
 	{
 
-		//cout<<peers.size();
 		peers.remove(addr);
 		replication_running=0;
-		//cout<<peers.size();
 	}
-
-	//RaftNode(){cout<<"Creatus est\n";}
-
-	void showPeers() {
-		auto i = peers.cbegin(), end = peers.cend();
-		cout << "\nPeers: ";
-
-		for (; i != end; i++) {
-			cout << *i << ", ";
-		}
-		printf("\n\n");
-	}
-
-	void set_role_follower() {
-		role = "FOLLOWER";
-	}
-
-	void set_role_candidate() {
-		role = "CANDIDATE";
-	}
-
-	void set_role_leader() {
-		role = "LEADER";
-	}
-
-
-
 
 private:
 
@@ -115,7 +87,8 @@ private:
 
 
 	// Candidate
-	void* candidacy;
+	void* candidacy;		// please refer to README for 
+							// reasoning for using void*
 
 
 	// Leader
@@ -136,7 +109,40 @@ private:
 	ELECTION_TIMEOUT_MAX = 10,
 	HEARTBEAT_TIMEOUT_MIN = 4,
 	HEARTBEAT_TIMEOUT_MAX = 5;
+
+
 public:
+
+	/* ===========================
+		--- MEMBER FUNCTIONS ---
+	   ==========================*/
+
+
+	// setter
+	void set_role_follower() {
+		role = "FOLLOWER";
+	}
+
+	// setter
+	void set_role_candidate() {
+		role = "CANDIDATE";
+	}
+
+	// setter
+	void set_role_leader() {
+		role = "LEADER";
+	}
+
+
+	/* ===========================
+		--- MEMBER FUNCTIONS ---
+			as in python cod
+
+	   Any significant alteration
+	   	 mentioned as comment(s)
+	   	 	 within functions
+	   ==========================*/
+
 	void step_down(us_int new_term) {
 		test_log("RaftNode " + to_string(addr) + ": Stepping Down as LEADER", addr);
 		current_term = new_term;
@@ -145,17 +151,20 @@ public:
 	}
 
 	void become_follower() {
+		// instead of passing entire node object, logging functions just 
+		//	pass node number
 		debug_log("RaftNode " + to_string(addr) + ": BECOME FOLLOWER", addr);
 		test_log("RaftNode " + to_string(addr) + ": BECOME FOLLOWER", addr);
 
 		role = "FOLLOWER";
-		next_index = 0,
+		next_index = 0,		// with us_int, the system uses 0 for no/null values
 		match_index = 0,
 		voted_for = 0;
 
 		if (replication_running){
 			cancelled_operations.push_back(replication_running);
-			replication_running=0;
+			replication_running=0;	// a null value assigned to show absence
+									// refer to READMD
 		}
 
 		if (candidacy) {
@@ -177,8 +186,9 @@ public:
 			cancelled_operations.push_back(election_timer);
 			election_timer=0;
 		}
-		auto fut=(std::async(std::launch::async,[this](){timeout();}));
-		election_timer=(void*)&(fut);
+		auto fut=(std::async(std::launch::async,[this](){timeout();})); // to asynchronously call functions
+
+		election_timer=(void*)&(fut);		
 	}
 
 	void become_candidate(){
@@ -191,11 +201,15 @@ public:
 		set_election_timer();
 	}
 
+	// Incomplete function;
+	// ...scheduler and async not fully implemented...
+	/*
 	void get_vote_from_node(const us_int & peer){
 		auto condition= match_type_src;
 		
 
 	}
+	*/
 
 	bool request_votes_and_get_majority(){
 		string s="RaftNode"+to_string(addr)+": requesting votes from peers:";
@@ -213,15 +227,26 @@ public:
 
 		int y_votes=0;
 
+		// Incomplete function
+		// ...scheduler and async not fully implemented...
 		for (auto & request_task : vote_request_tasks){
+			// simply casting request_task to a future ptr
+			// and then calling the future::get() SHOULD
+			// suffice to complete the implementation till
+			// this loop. HOWEVER, it has not been tested 
+			// and may have an issue in casting and calling
+			// as futures are "temporary"
 
+			// Additionally, even if this works, it may not
+			// provide truly async functionality, and may
+			// be large asynchronous mostly, but not always
+			// depending on backend implementation of async
 		}
 			
 		return 1;
 	}
 
 	void start_candidacy(){
-//		cout<<"Voila ! Nodef: "<<addr;
 		debug_log("RaftNode "+to_string(addr)+": Starts Candidacy", addr);
 		bool election_result=0;
 		current_term+=1;
@@ -234,7 +259,10 @@ public:
 
 	void timeout(){
 		float time_to_sleep= ELECTION_TIMEOUT_MIN + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(ELECTION_TIMEOUT_MAX-ELECTION_TIMEOUT_MIN)));
-		sleep(time_to_sleep);
+		
+		sleep(time_to_sleep); // this is likely blocking sleep, but async SHOULD
+							  // be able to work around this by default...
+		
 		if (candidacy)
 			cancelled_operations.push_back(candidacy);
 
@@ -244,113 +272,22 @@ public:
 		auto fut=std::async(std::launch::async,[this](){start_candidacy();});
 		candidacy=(void *) &fut;
 	}
-/*
-	void start_replication() { 
-		if (replication_running)
-			scheduler.job_promises.at(replication_running)->set_value(0);
 
-		replication_running = async(launch::async, replicate_log_to_peers);
+	// helper function; unimportant
+	// useful for debugging, may be ignored
+	void showPeers() {
+		auto i = peers.cbegin(), end = peers.cend();
+		cout << "\nPeers: ";
 
-		//set_heartbeat_timer();
-	}
-
-	void replicate_log_to_peers() {
-		bool norm=false;
-		try {
-			list<auto> replicators;
-			string s = "Waiting on Replicators...",
-			       s_done = "Replication Done.";
-
-			for (auto peer : peers)
-				replicators.emplace(async(launch::async, replicate_log_to_node, peer));
-			debug_log(s, addr);
-
-			for (auto awaiter : replicators)
-				awaiter.get();
-			norm=true;
+		for (; i != end; i++) {
+			cout << *i << ", ";
 		}
-		catch (auto e){}
-
-		if (!norm)
-			cout<<"Error : Exception encourtered in call to replicate_log_to_peers() in node.h.";
+		printf("\n\n");
 	}
-/*
-	void replicate_log_to_node(){
-			bool accept=false;
 
-			void* condition;
 
-			try{
-				while (!accept){
-					condition++;
-				}
-			}
-			catch (int e) {}
-	}*/
-
-	/*"""
-	set_election_timer :   Sets the Election Timer
-	Input(s):
-	    None
-	Output(s):
-	    None
-	Side Effect(s):
-	    Sets the Election Timer for Node
-	    When Timer Expires, the node will begin an Election as a Candidate
-	"""
-	def set_election_timer(self):
-	"""
-	Start an election timeout timer.
-	    If we were a candidate for an election, we time out the election and start a new election timeout.
-	"""
-	#self.debug_log("Raft", self.addr, "restarting election timeout")
-	if(self.election_timer != None):
-	    # print("cancelinng election timer")
-	    self.election_timer.cancel()
-
-	async def timeout():
-	    time_to_sleep = uniform(ELECTION_TIMEOUT_MIN, ELECTION_TIMEOUT_MAX)
-	    await asyncio.sleep(time_to_sleep)
-	    if self.candidacy != None:
-	        self.candidacy.cancel()
-	    # Can't figure out why this isn't stopping so let's just not try and elect if we are the main guy.
-	    if not self.role == Role.LEADER:
-	        self.candidacy = asyncio.create_task(self.start_candidacy())
-	self.election_timer = asyncio.create_task(timeout())
-	*/
-	/*
-
-	"""
-	become_follower :   Becomes a Follower
-	Input(s):
-	    None
-	Output(s):
-	    None
-	Side Effect(s):
-	    Sets Role to Follower
-	    Clears Next Index
-	    Clears Match Index
-	    Clears Voted For
-	    If the Node was Replicating, Stop it
-	    If the Node has a Candidacy, Stop it
-	    Stop the Heatbeat Timer
-	"""
-	def become_follower(self):
-	self.debug_log("RaftNode ", self.addr, ": BECOME FOLLOWER")
-	self.test_log("RaftNode", self.addr, ": BECOME FOLLOWER")
-	self.role = Role.FOLLOWER
-	self.next_index = None
-	self.match_index = None
-	self.voted_for = None
-
-	if(self.replication_running != None):
-	    self.replication_running.cancel()
-	if(self.candidacy != None):
-	    self.candidacy.cancel()
-	self.clear_heartbeat_timer()*/
-
-public:
-
+	// to allow RaftNode private members be accessible without getters
+	// by external function(s) -- may be ommitted in final version
 	friend void handle_REQUEST_VOTE(Message m, RaftNode& node);
 
 
