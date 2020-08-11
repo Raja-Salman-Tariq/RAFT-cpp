@@ -1,3 +1,5 @@
+#ifndef keyval 
+    #define keyval
 #include <iostream>
 #include <map>
 #include "utils.h" 
@@ -134,3 +136,4 @@ private:
     #---------------------------------------------------------------------------
     
 */
+#endif 

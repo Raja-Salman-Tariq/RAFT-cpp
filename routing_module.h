@@ -1,3 +1,6 @@
+#ifndef routing 
+	#define routing
+
 #include <openssl/md5.h>
 #include <string>
 #include <list>
@@ -154,3 +157,5 @@ public:
 
 
 	};
+
+	#endif

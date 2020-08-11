@@ -1,15 +1,15 @@
+#ifndef logg 
+    #define logg 
+
 #include <iostream>
 #include <list>
 #include "message_module.h"
-#include "utils.h"
 
 #define us_int  unsigned short int
 
 
-std::string FILE_EXTENSION = ".txt";
-
 struct LogEntry {
-    LogEntry(us_int _term, Message _m): term(_term), m(_m) {}
+    LogEntry(us_int _term=0, Message _m={"", 0,0,{}}): term(_term), m(_m) {}
 
     us_int term;
     Message m;
@@ -17,7 +17,7 @@ struct LogEntry {
 
 class Log {
 public:
-    Log() {}
+    // uses default ctor;
 
     void log_transaction(us_int term, Message m) {
         LogEntries.push_back({term, m});
@@ -44,7 +44,7 @@ public:
     }
 
     void replace_log_at_and_after_index(us_int index, std::list<LogEntry> & _log) {
-        LogEntries.resize(index);
+        //LogEntries.resize(index);
 
         auto insertAt = LogEntries.cbegin(), insertFrom = _log.cbegin(), insertTill = _log.cend();
 
@@ -56,7 +56,7 @@ public:
     }
 
     void replace_log_at_and_after_index(us_int index, std::list<LogEntry> & _log, us_int indexToInsertFrom) {
-        LogEntries.resize(index);
+        //LogEntries.resize(index);
 
         auto insertAt = LogEntries.cbegin(), insertFrom = _log.cbegin(), insertTill = _log.cend();
 
@@ -92,7 +92,7 @@ public:
 
         auto i=LogEntries.cbegin(), end=LogEntries.cbegin();
         advance(i,start_index);
-        advance(end, stop_index+1)
+        advance(end, stop_index+1);
 
         toRet.assign(i, end);
         return toRet;
@@ -102,3 +102,4 @@ public:
 private:
     std::list<LogEntry> LogEntries;
 };
+#endif

@@ -1,0 +1,2 @@
+RaftNode 100: BECOME FOLLOWER
+RaftNode 100: Stepping Down as LEADER
