@@ -78,11 +78,11 @@ public:
 
 
 	/* =============================
-		 --- GETTER FUNCTIONS ---
+		 --- GETTER FUNCTIONS ---	
 	     	mainly for debugging
 	     		unimporant
 	   ===========================*/
-	const std::string& getType() {cout << "returning type..." << type << endl; return type;}
+	const std::string& getType() {std::cout << "returning type..." << type << std::endl; return type;}
 	const us_int& getSrc() {return src;}
 	const us_int& getDst() {return dst;}
 	const std::map<std::string, std::string>& getArgs() {return args;}

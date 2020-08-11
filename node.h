@@ -203,13 +203,13 @@ public:
 
 	// Incomplete function;
 	// ...scheduler and async not fully implemented...
-	/*
+	
 	void get_vote_from_node(const us_int & peer){
 		auto condition= match_type_src;
 		
 
 	}
-	*/
+	
 
 	bool request_votes_and_get_majority(){
 		string s="RaftNode"+to_string(addr)+": requesting votes from peers:";

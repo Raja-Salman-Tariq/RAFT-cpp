@@ -1,12 +1,12 @@
-#include "node.h"
 //#include <coroutine>
 #include <zmq.h>
 #include <iostream>
 #include <vector>
+#include "node.h"
 
 using namespace std;
 
-struct gib{
+/*struct gib{
 
 	gib(int i){x+=i, s+="\n";}
 
@@ -20,9 +20,14 @@ void sendingLol(Message* m){
 	printf("\n\n**************\nMsg sent:\nType:%s\nSrc%d\nDst:%d\nArgs:-\n", 
 		m->getType().c_str(), m->getSrc(), m->getDst());
 	 m->showArgs();
-}
+}*/
 
 int main(){
+	// RANDOME TESTING CODE
+
+
+
+/*
 	PersistantKeyValueStore p(9);
 	Messenger m(100, &sendingLol);
 	Scheduler s;
@@ -47,28 +52,28 @@ int main(){
 	for(; i!=end; i++)
 		cout<<*i<<", ";
 
-
+*/
 	/*
 	std::string str="GET";
-	std:: string haha="haha", hurhur="hurhur", hehe="heehee", hoohoo="hoooohohohohoho", teehee="teehee", naga="", tir="t";
-	m.send_message({str,100,200,{{haha,hurhur},{hehe,hoohoo},{teehee,naga},{naga,tir}, {tir,tir}}});
+	std:: string a="aa", b="urhu", c="ee", d="h", e="eeee", f="", g="t";
+	m.send_message({str,100,200,{{a,b},{c,d},{e,f},{f,g}, {g,g}}});
 
-	//std::map<std::string,std::string> map={{haha,hurhur},{hehe,hoohoo}};
+	//std::map<std::string,std::string> map={{a,b},{e,d}};
 	*/
 
 
-	//cout<<"thingie: "<<fopen("kuchar kew xD.txt", "r");
+	//cout<<"output: "<<fopen("not existing file.txt", "r");
 
 
-
+/*
 	void* context=zmq_ctx_new();
 
-	list<gib> lol={1};
+	list<gib> list1={1};
 
-	list<gib>* loll=&lol;
+	list<gib>* list2=&list1;
 
-//	auto i=lol.cbegin();
-	for (auto& i : *loll)
+//	auto i=l.cbegin();
+	for (auto& i : *list2)
 		i.pr();
 
 	cout<<"Empty ?";
@@ -76,6 +81,6 @@ int main(){
 	n.step_down(13);
 
 	cout<<"Complt";
-
+*/
 	return 0;
 }
