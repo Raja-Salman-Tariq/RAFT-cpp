@@ -1,8 +1,14 @@
 #ifndef async_present
 #define async_present
 #include <list>
-#include "message_module.h"
 #include <future>
+#include "message_module.h"
+
+
+
+	/* 
+		File requires significant revision...
+	 */
 
 struct Job {
 	Job(bool (* _activCond)(Message&), void* _future = 0):
@@ -84,10 +90,7 @@ public:
 	}
 
 	void register_job(Job& j) {
-//		std::promise<bool> p;
-
 		jobs.emplace(j.future, j);
-//		job_promises.emplace(j.future, new promise<bool>);	// ******** DELETE THIS *************
 	}
 
 

@@ -6,7 +6,7 @@
 
 using namespace std;
 
-/*struct gib{
+struct gib{
 
 	gib(int i){x+=i, s+="\n";}
 
@@ -20,14 +20,14 @@ void sendingLol(Message* m){
 	printf("\n\n**************\nMsg sent:\nType:%s\nSrc%d\nDst:%d\nArgs:-\n", 
 		m->getType().c_str(), m->getSrc(), m->getDst());
 	 m->showArgs();
-}*/
+}
 
 int main(){
 	// RANDOME TESTING CODE
 
 
 
-/*
+
 	PersistantKeyValueStore p(9);
 	Messenger m(100, &sendingLol);
 	Scheduler s;
@@ -52,7 +52,7 @@ int main(){
 	for(; i!=end; i++)
 		cout<<*i<<", ";
 
-*/
+
 	/*
 	std::string str="GET";
 	std:: string a="aa", b="urhu", c="ee", d="h", e="eeee", f="", g="t";
@@ -65,7 +65,7 @@ int main(){
 	//cout<<"output: "<<fopen("not existing file.txt", "r");
 
 
-/*
+
 	void* context=zmq_ctx_new();
 
 	list<gib> list1={1};
@@ -81,6 +81,6 @@ int main(){
 	n.step_down(13);
 
 	cout<<"Complt";
-*/
+
 	return 0;
 }

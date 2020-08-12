@@ -1,5 +1,5 @@
 #ifndef keyval 
-    #define keyval
+#define keyval
 #include <iostream>
 #include <map>
 #include "utils.h" 
@@ -68,7 +68,6 @@ public:
                 printf("\nERROR: Converting file %s to %s unsuccessful.\n",db_backup, db);
 
         //#3. Handle Log
-        //fseek(log_out, 0, SEEK_SET);
         fclose(log_out);
         log_out=fopen(log.c_str(),"w");
     }
@@ -123,7 +122,15 @@ private:
     std::string log;
     FILE* log_out;
     std::map<std::string, std::string> dict; // for storing key value pairs
-};/*
+};
+
+
+
+// ...scheduler and async not fully implemented...
+
+
+
+/*
     """
     startup :   Startup for Key-Value Store
     """
