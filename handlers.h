@@ -1,10 +1,10 @@
 #ifndef handlers_present
-define handlers_present
+#define handlers_present
 
 #include <future>
 #include "message_module.h"
 #include "utils.h"
-#include "node.h"
+
 // ...scheduler and async not fully implemented...
 // file incomplete...
 
@@ -24,7 +24,7 @@ handle_REQUEST_VOTE :   Handles a REQUEST_VOTE message
         Will Accept or Reject the REQUEST_VOTE with a VOTE and update the
         internal state accordingly.
 """*/
-
+RaftNode r;
 void handle_REQUEST_VOTE(Message m, RaftNode& this) {
     
         std::list<std::string> _args={"term", "last_log_index", "last_log_term"};
@@ -58,8 +58,54 @@ void handle_REQUEST_VOTE(Message m, RaftNode& this) {
         if(this.current_term < term)
             this.step_down(term);
 
-        // function incomplete...
-        // ...scheduler and async not fully implemented...
+
+        // C1: They are at a higher term
+        bool c1= this.current_term<= term,
+
+        // C2: We have not voted yet
+        c2= this.voted_for==0,
+
+        // C3: Their log is more up to date
+        c3a= last_log_term >= this.last_log_term(),
+        c3b= ((last_log_term != this.last_log_term()) || (last_log_index >= this.last_log_index())),
+        c3 = (c3a && c3b);
+
+        debug_log("C1: "+to_string(c1)+" | "+
+                  "C2: "+to_string(c2)+" | "+
+                  "C3: "+to_string(c3)+" | "+
+                  "C3a: "+to_string(c3a)+" | "
+                  "C3b: "+to_string(c3b)
+            ,addr);
+
+        if (c1 && c2 && c3){
+            debug_log("RaftNode "+to_string(addr)+": ACCEPT Vote from "+to_string(candidate_id)
+                ,addr)
+
+        voted_for=candidate_id;
+        send_VOTE(candidate_id, true);
+        set_election_timer();
+        }   
+
+        else{
+            debug_log("RaftNode "+toStr(addr)+": REJECT Vote from "+to_string(candidate_id)
+                , addr);
+            send_VOTE(candidate_id, false);
+        }
     
 }
+
+void send_VOTE(us_int dst, bool accept){
+/*    """
+    Tell <dst> that I <accept>
+    """
+    #self.debug_log("Raft", self.addr, "VOTE for", dst)*/
+
+    cout<<"***********************************\n"
+        <<"NEEDS TO BE IMPLEMENTED (send_VOTE() func)\n"
+        <<"***********************************";
+
+}
+
+
+
 #endif

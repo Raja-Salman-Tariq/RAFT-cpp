@@ -1,15 +1,17 @@
 #ifndef node_present
 #define node_present
 
-#include <iostream>	
+#include <iostream>
 #include <string>
 #include <unistd.h>
 #include <functional>
+#include <zmq.h>
 #include "message_module.h"
 #include "routing_module.h"
 #include "key_value_module.h"
 #include "log_module.h"
 #include "async_module.h"
+//#include "handlers.h"
 
 
 
@@ -57,7 +59,16 @@ public:
 	{
 
 		peers.remove(addr);
-		replication_running=0;
+		replication_running = 0;
+
+		//h.emplace(match_type("REQUEST_VOTE"),&handle_REQUEST_VOTE);
+		// add handlers here
+		string logStr="Starting Node: "+to_string(addr)+" Peers: ";
+		for (auto& peer : peers)
+			logStr+=to_string(peer)+" ";
+		debug_log(logStr,addr);
+
+
 	}
 
 private:
@@ -87,16 +98,16 @@ private:
 
 
 	// Candidate
-	void* candidacy;		// please refer to README for 
-							// reasoning for using void*
+	void* candidacy;		// please refer to README for
+	// reasoning for using void*
 
 
 	// Leader
 	us_int last_request_id;
 	list<transactions> pending_transactions;
 	void* replication_running;
-	us_int next_index;		// Next log index per peer
-	us_int match_index; 	// Successfully replicated log index per peer
+	map<us_int, us_int> next_index;		// Next log index per peer
+	map<us_int, us_int> match_index; 	// Successfully replicated log index per peer
 	us_int commit_index;	// Indexes considered committed
 	us_int last_applied;	// Last command in DB
 	void* heartbeat_timer;
@@ -106,9 +117,12 @@ private:
 
 	// Timeouts
 	us_int ELECTION_TIMEOUT_MIN = 8,
-	ELECTION_TIMEOUT_MAX = 10,
-	HEARTBEAT_TIMEOUT_MIN = 4,
-	HEARTBEAT_TIMEOUT_MAX = 5;
+	       ELECTION_TIMEOUT_MAX = 10,
+	       HEARTBEAT_TIMEOUT_MIN = 4,
+	       HEARTBEAT_TIMEOUT_MAX = 5;
+
+	// Handlers
+	list<Handler> h;
 
 
 public:
@@ -151,89 +165,143 @@ public:
 	}
 
 	void become_follower() {
-		// instead of passing entire node object, logging functions just 
+		// instead of passing entire node object, logging functions just
 		//	pass node number
 		debug_log("RaftNode " + to_string(addr) + ": BECOME FOLLOWER", addr);
 		test_log("RaftNode " + to_string(addr) + ": BECOME FOLLOWER", addr);
 
 		role = "FOLLOWER";
+		/*
 		next_index = 0,		// with us_int, the system uses 0 for no/null values
-		match_index = 0,
+		match_index = 0,*/
+
+		// the 2 lines above commented; followers may not have match and next indexes
+		// but instead of setting them as empty here, we can instead do so when
+		// becoming leader, and avoid handling them. Access to these shall be restricted
+		// via role.
+
 		voted_for = 0;
 
-		if (replication_running){
+		if (replication_running) {
 			cancelled_operations.push_back(replication_running);
-			replication_running=0;	// a null value assigned to show absence
-									// refer to READMD
+			replication_running = 0;	// a null value assigned to show absence
+			// refer to READMD
 		}
 
 		if (candidacy) {
 			cancelled_operations.push_back(candidacy);
-			candidacy=0;
-		} 
-		
+			candidacy = 0;
+		}
+
 		clear_heartbeat_timer();
 	}
 
 	void clear_heartbeat_timer() {
 		if (heartbeat_timer)
 			cancelled_operations.push_back(heartbeat_timer); //heartbeat_timer.cancel();// make heartbeat timer a ptr to future obj maybe ?
-			heartbeat_timer = 0;
+		heartbeat_timer = 0;
+	}
+
+	void set_heartbeat_timer() {
+		if (heartbeat_timer)
+			cancelled_operations.push_back(heartbeat_timer);
+		auto fut = async(std::launch::async, [this]() {heartbeat_timeout();});
+		heartbeat_timer = &fut;
 	}
 
 	void set_election_timer() {
 		if (election_timer) {
 			cancelled_operations.push_back(election_timer);
-			election_timer=0;
+			election_timer = 0;
 		}
-		auto fut=(std::async(std::launch::async,[this](){timeout();})); // to asynchronously call functions
+		auto fut = (std::async(std::launch::async, [this]() {timeout();})); // to asynchronously call functions
 
-		election_timer=(void*)&(fut);		
+		election_timer = (void*) & (fut);
 	}
 
-	void become_candidate(){
-		debug_log("RaftNode "+to_string(addr)+": BECOME CANDIDATE", addr);
-		test_log("RaftNode"+to_string(addr)+": BECOME CANDIDATE", addr);
+	void become_candidate() {
+		debug_log("RaftNode " + to_string(addr) + ": BECOME CANDIDATE", addr);
+		test_log("RaftNode" + to_string(addr) + ": BECOME CANDIDATE", addr);
 		clear_heartbeat_timer();
 
-		leader=0;
-		role="CANDIDATE";
+		leader = 0;
+		role = "CANDIDATE";
 		set_election_timer();
 	}
 
-	// Incomplete function;
-	// ...scheduler and async not fully implemented...
-	
-	void get_vote_from_node(const us_int & peer){
-		auto condition= match_type_src;
-		
+
+	void become_leader() {
+		debug_log("Node " + to_string(addr) + ": BECOME LEADER", addr);
+		test_log("RaftNode " + to_string(addr) + ": BECOME LEADER", addr);
+
+		match_index.clear();
+		next_index.clear();
+
+		for (auto& p : peers) {
+			match_index.emplace(p, 0);
+			next_index.emplace(p, log.latest_index() + 1);
+		}
+
+		clear_election_timer();
+		start_replication();
+		//start_heartbeat(); //-- func def not found
+
 
 	}
-	
 
-	bool request_votes_and_get_majority(){
-		string s="RaftNode"+to_string(addr)+": requesting votes from peers:";
+	void clear_election_timer() {
+		if (election_timer) {
+			cancelled_operations.push_back(election_timer);
+			election_timer = 0;
+		}
+	}
+
+	void start_replication() {
+		if (replication_running) {
+			cancelled_operations.push_back(replication_running);
+		}
+
+		auto fut = async(std::launch::async, [this]() {replicate_log_to_peers();});
+		replication_running = &fut;
+		set_heartbeat_timer();
+	}
+
+	//======================================================
+	// Incomplete functions;
+	// ...scheduler and async not fully implemented...
+	// if any one of these is completed, the rest should cascade
+	//	in terms of syntax, logic, understanding...
+
+	void replicate_log_to_peers() {}
+	void get_vote_from_node(const us_int & peer) {
+		auto condition = match_type_src;
+	}
+	//======================================================
+
+
+	bool request_votes_and_get_majority() {
+		string s = "RaftNode" + to_string(addr) + ": requesting votes from peers:";
 		for (auto peer : peers)
-			s+=" "+(to_string(peer))+",";
+			s += " " + (to_string(peer)) + ",";
 		//need to delete last trailing ',';
 		debug_log(s, addr);
 
 		list<void*> vote_request_tasks;
 
-		for (auto& peer: peers){
-			auto fut=(async(std::launch::async, [this,&peer](){get_vote_from_node(peer);}));
+		for (auto& peer : peers) {
+			auto fut = (async(std::launch::async, [this, &peer]() {get_vote_from_node(peer);}));
 			vote_request_tasks.push_back(&fut);
 		}
 
-		int y_votes=0;
+		int y_votes = 0;
 
 		// Incomplete function
 		// ...scheduler and async not fully implemented...
-		for (auto & request_task : vote_request_tasks){
+		for (auto & request_task : vote_request_tasks) {
 			// simply casting request_task to a future ptr
 			// and then calling the future::get() SHOULD
 			// suffice to complete the implementation till
-			// this loop. HOWEVER, it has not been tested 
+			// this loop. HOWEVER, it has not been tested
 			// and may have an issue in casting and calling
 			// as futures are "temporary"
 
@@ -242,35 +310,55 @@ public:
 			// be large asynchronous mostly, but not always
 			// depending on backend implementation of async
 		}
-			
+
 		return 1;
 	}
 
-	void start_candidacy(){
-		debug_log("RaftNode "+to_string(addr)+": Starts Candidacy", addr);
-		bool election_result=0;
-		current_term+=1;
+	void start_candidacy() {
+		debug_log("RaftNode " + to_string(addr) + ": Starts Candidacy", addr);
+		bool election_result = 0;
+		current_term += 1;
 		become_candidate();
-		voted_for=addr;
+		voted_for = addr;
 
-		election_result=request_votes_and_get_majority();
+		election_result = request_votes_and_get_majority();
 	}
 
 
-	void timeout(){
-		float time_to_sleep= ELECTION_TIMEOUT_MIN + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(ELECTION_TIMEOUT_MAX-ELECTION_TIMEOUT_MIN)));
-		
+	void timeout() {
+		float time_to_sleep = ELECTION_TIMEOUT_MIN + static_cast <float> (rand()) / ( static_cast <float> (RAND_MAX / (ELECTION_TIMEOUT_MAX - ELECTION_TIMEOUT_MIN)));
+
 		sleep(time_to_sleep); // this is likely blocking sleep, but async SHOULD
-							  // be able to work around this by default...
-		
+		// be able to work around this by default...
+
 		if (candidacy)
 			cancelled_operations.push_back(candidacy);
 
-		if (role!="LEADER")
-			candidacy=(void*) 1;
+		if (role != "LEADER")
+			candidacy = (void*) 1;
 
-		auto fut=std::async(std::launch::async,[this](){start_candidacy();});
-		candidacy=(void *) &fut;
+		auto fut = std::async(std::launch::async, [this]() {start_candidacy();});
+		candidacy = (void *) &fut;
+	}
+
+	void heartbeat_timeout() {
+		float time_to_sleep = HEARTBEAT_TIMEOUT_MIN + static_cast <float> (rand()) / ( static_cast <float> (RAND_MAX / (HEARTBEAT_TIMEOUT_MAX - HEARTBEAT_TIMEOUT_MIN)));
+		sleep(time_to_sleep);
+
+		auto task = async(std::launch::async, [this]() {heartbeat();});
+		task.get();
+	}
+
+	void heartbeat() {
+		if (role == "LEADER")
+			start_replication();
+	}
+
+	void send_to_broker(map<map<string, string>, map<string, string>> d) {
+		//	req.send_json(d);
+		cout << "*******************************************\n"
+		     << "NEEDS TO BE IMPLEMENTED\n"
+		     << "*******************************************";
 	}
 
 	// helper function; unimportant

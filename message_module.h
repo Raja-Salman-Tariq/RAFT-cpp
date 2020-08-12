@@ -13,6 +13,26 @@
 #define key first  // these are for readability when
 #define val second // accessing pairs
 
+/*Supported MessageTypes:
+    #SET/GET
+    GET = 'get'
+    GET_RESPONSE_TO_BROKER = 'getResponse'
+
+    SET = 'set'
+    SET_RESPONSE_TO_BROKER = 'setResponse'
+
+    #VOTING
+    REQUEST_VOTE = 'REQUEST_VOTE'
+    VOTE = 'VOTE'
+
+    #APPEND ENTRIES
+    APPEND_ENTRIES = 'APPEND_ENTRIES'
+    APPEND_ENTRIES_REPLY = 'APPEND_ENTRIES_REPLY'
+
+    #FORWARD
+    FORWARD = 'FORWARD'
+    FORWARD_REPLY = 'FORWARD_REPLY'*/
+
 
 
 class Message {
@@ -127,8 +147,8 @@ bool match_type(Message &m, std::string type){
 
 
 // returns lambda to match type
-auto match_type(Message m, std::string type) {
-	return [&m, &type](){return m.has_type(type);};
+auto match_type(std::string type) {
+	return ([&type](Message& m){return m.has_type(type);});
 }
 
 
@@ -145,15 +165,25 @@ class Messenger {
 public:
 
 	// constructor
-	Messenger(us_int _addr, void (* fun_ptr)(Message *)): addr(_addr), send_to_broker(fun_ptr) {}
+	Messenger(us_int _addr, void (* fun_ptr)(std::map<std::map<std::string, std::string>,std::map<std::string, std::string>>))
+	: addr(_addr), send_to_broker(fun_ptr) {}
 
 	void send_message(Message msg) { // send message to scheduler
-		send_to_broker(&msg);
+		
+
+		std::map<std::string, std::string> header;
+		header.emplace("type",msg.type);
+		header.emplace("src", std::to_string(msg.src));
+		header.emplace("destination", std::to_string(msg.dst));
+
+		std::map<std::map<std::string, std::string>,std::map<std::string, std::string>> broker_message;
+		broker_message.emplace(header,msg.args);
+		send_to_broker(broker_message);
 	}
 
 private:
 	us_int addr;
-	void (* send_to_broker)(Message*); // meant to store lambda for scheduler
+	void (* send_to_broker)(std::map<std::map<std::string, std::string>,std::map<std::string, std::string>>); // meant to store lambda for scheduler
 										// ...scheduler and async not fully implemented...
 
 };

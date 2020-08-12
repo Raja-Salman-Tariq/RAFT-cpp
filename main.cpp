@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include "node.h"
+#include "network_node.h"
 
 using namespace std;
 
@@ -16,10 +17,14 @@ struct gib{
 	void pr(){printf("%s, %d, \n", s.c_str(), x);}
 };
 
-void sendingLol(Message* m){
+void sending(Message* m){
 	printf("\n\n**************\nMsg sent:\nType:%s\nSrc%d\nDst:%d\nArgs:-\n", 
 		m->getType().c_str(), m->getSrc(), m->getDst());
 	 m->showArgs();
+}
+
+void sending2(std::map<std::map<std::string, std::string>,std::map<std::string, std::string>> m){
+	cout<<"Dummy func -ok;";
 }
 
 int main(){
@@ -29,7 +34,7 @@ int main(){
 
 
 	PersistantKeyValueStore p(9);
-	Messenger m(100, &sendingLol);
+	Messenger m(100, &sending2);
 	Scheduler s;
 	RoutingTable t(100);
 	RaftNode  n(100,p,s,m,t);

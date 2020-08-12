@@ -7,7 +7,7 @@
 
 
 	/* 
-		File requires significant revision...
+		File may require significant revision...
 	 */
 
 struct Job {
